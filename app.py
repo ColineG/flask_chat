@@ -1,14 +1,18 @@
+from datetime import datetime
+
 from flask import Flask, render_template, flash, redirect, request, url_for
 from flask_wtf import FlaskForm
 from werkzeug.urls import url_parse
 from werkzeug.security import check_password_hash, generate_password_hash
-from wtforms import ValidationError, StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, EqualTo, Email
+from wtforms import ValidationError, StringField, PasswordField, BooleanField, SubmitField, TextAreaField, SubmitField
+from wtforms.validators import DataRequired, EqualTo, Email, Length
 
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required, UserMixin
+from hashlib import md5
+
 
 # Ci dessous on applique mes config a l'appli flask
 app = Flask(__name__)
@@ -53,8 +57,7 @@ def login():
 
     form = LoginForm()
     app.logger.info(form.username)
-    app.logger.info(form.password)
-    app.logger.info(form.validate_on_submit())
+
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         app.logger.info(user)
@@ -95,6 +98,41 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+@app.route('/user/<username>')
+@login_required
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = [
+        {'author': user, 'body': 'Test post #1'},
+        {'author': user, 'body': 'Test post #2'}
+    ]
+    return render_template('user.html', user=user, posts=posts)
+
+
+@app.before_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
+
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.about_me = form.about_me.data
+        db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('edit_profile'))
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html', title='Edit Profile',
+                           form=form)
+
+
 # ci dessous nos models pour l'ORM SQL alchemy
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -105,6 +143,8 @@ class User(UserMixin, db.Model):
     user_status = db.Column(db.Enum('0', '1'))
     deleted_at = db.Column(db.DateTime)
     messages = db.relationship('Messages', backref='author', lazy='dynamic')
+    about_me = db.Column(db.String(140))
+    last_seen = db.Column(db.DateTime, default=datetime.now())
 
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
@@ -122,8 +162,13 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def avatar(self, size):
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
+            digest, size)
+
     def __repr__(self):
-        return f"user(id={self.id}, username={self.username})"
+        return f"user(id={self.id}, username={self.username}, email={self.email})"
 
 
 class Messages(db.Model):
@@ -170,6 +215,12 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
             raise ValidationError('Please use a different email address.')
+
+
+class EditProfileForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    about_me = TextAreaField('About me', validators=[Length(min=0, max=140)])
+    submit = SubmitField('Submit')
 
 
 if __name__ == '__main__':
