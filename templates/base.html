@@ -7,8 +7,11 @@
       <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
        <a href="{{ url_for('change_psd') }}">{{ current_user.username }}</a>
       <a href="{{ url_for('logout') }}">Logout</a>
+       <a href="{{ url_for('map_display') }}">Map</a>
       {% endif %}
     </div>
+
+   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
 
    {% block content %}
    {% endblock %}
