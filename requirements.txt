@@ -4,3 +4,6 @@ Flask-SQLAlchemy
 Flask-WTF
 flask-migrate
 flask-login
+routes
+models
+errors
