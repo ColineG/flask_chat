@@ -12,7 +12,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required, UserMixin
 from hashlib import md5
-
+import logging
+from logging.handlers import SMTPHandler
 
 # Ci dessous on applique mes config a l'appli flask
 app = Flask(__name__)
@@ -21,6 +22,22 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_ = LoginManager(app)
 login_.login_view = 'login'
+
+if not app.debug:
+    if app.config['MAIL_SERVER']:
+        auth = None
+        if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
+            auth = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        secure = None
+        if app.config['MAIL_USE_TLS']:
+            secure = ()
+        mail_handler = SMTPHandler(
+            mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
+            fromaddr='no-reply@' + app.config['MAIL_SERVER'],
+            toaddrs=app.config['ADMINS'], subject='Microblog Failure',
+            credentials=auth, secure=secure)
+        mail_handler.setLevel(logging.ERROR)
+        app.logger.addHandler(mail_handler)
 
 
 # Ci dessous mes route d'API
@@ -133,7 +150,68 @@ def edit_profile():
                            form=form)
 
 
+@app.route('/follow/<username>')
+@login_required
+def follow(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('User {} not found.'.format(username))
+        return redirect(url_for('index'))
+    if user == current_user:
+        flash('You cannot follow yourself!')
+        return redirect(url_for('user', username=username))
+    current_user.follow(user)
+    db.session.commit()
+    flash('You are following {}!'.format(username))
+    return redirect(url_for('user', username=username))
+
+
+@app.route('/unfollow/<username>')
+@login_required
+def unfollow(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('User {} not found.'.format(username))
+        return redirect(url_for('index'))
+    if user == current_user:
+        flash('You cannot unfollow yourself!')
+        return redirect(url_for('user', username=username))
+    current_user.unfollow(user)
+    db.session.commit()
+    flash('You are not following {}.'.format(username))
+    return redirect(url_for('user', username=username))
+
+
+# Custom page to test iframe and png add to the website
+@app.route('/map', methods=['GET', 'POST'])
+@login_required
+def map_display():
+    return render_template('map.html')
+
+
+# Custom error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('500.html'), 500
+
+
+# add followers to the database / followers association table:
+# is an auxiliary table that has no data other than the foreign keys, so it's not a table like User
+
+followers = db.Table('followers',
+    db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+)
+
 # ci dessous nos models pour l'ORM SQL alchemy
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -145,6 +223,9 @@ class User(UserMixin, db.Model):
     messages = db.relationship('Messages', backref='author', lazy='dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.now())
+    followed = db.relationship(
+        'User', secondary=followers, primaryjoin=(followers.c.follower_id == id),
+        secondaryjoin=(followers.c.followed_id == id), backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
 
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
@@ -166,6 +247,25 @@ class User(UserMixin, db.Model):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followed.remove(user)
+
+    def is_following(self, user):
+        return self.followed.filter(
+            followers.c.followed_id == user.id).count() > 0
+
+    def followed_posts(self):
+        followed = Post.query.join(
+            followers, (followers.c.followed_id == Post.user_id)).filter(
+                followers.c.follower_id == self.id)
+        own = Post.query.filter_by(user_id=self.id)
+        return followed.union(own).order_by(Post.timestamp.desc())
 
     def __repr__(self):
         return f"user(id={self.id}, username={self.username}, email={self.email})"
