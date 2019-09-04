@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .vega-actions a {
+        margin-right: 12px;
+        color: #757575;
+        font-weight: normal;
+        font-size: 13px;
+    }
+    .error {
+        color: red;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-lite@3.3.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm//vega-embed@4"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+      var spec = {"config": {"view": {"width": 400, "height": 300}, "mark": {"tooltip": null}}, "data": {"name": "data-4d1e2bbd0bd26447620200794694439c"}, "mark": {"type": "bar", "opacity": 0.7}, "encoding": {"color": {"type": "nominal", "field": "Q1"}, "x": {"type": "ordinal", "field": "Q2"}, "y": {"type": "quantitative", "field": "count_sex_per_age", "stack": null}}, "$schema": "https://vega.github.io/schema/vega-lite/v3.3.0.json", "datasets": {"data-4d1e2bbd0bd26447620200794694439c": [{"Q1": "Male", "Q2": "25-29", "count_sex_per_age": 4955}, {"Q1": "Male", "Q2": "22-24", "count_sex_per_age": 4046}, {"Q1": "Male", "Q2": "30-34", "count_sex_per_age": 3081}, {"Q1": "Male", "Q2": "18-21", "count_sex_per_age": 2509}, {"Q1": "Male", "Q2": "35-39", "count_sex_per_age": 1855}, {"Q1": "Male", "Q2": "40-44", "count_sex_per_age": 1163}, {"Q1": "Female", "Q2": "25-29", "count_sex_per_age": 1115}, {"Q1": "Female", "Q2": "22-24", "count_sex_per_age": 1024}, {"Q1": "Male", "Q2": "45-49", "count_sex_per_age": 733}, {"Q1": "Female", "Q2": "30-34", "count_sex_per_age": 622}, {"Q1": "Male", "Q2": "50-54", "count_sex_per_age": 498}, {"Q1": "Female", "Q2": "18-21", "count_sex_per_age": 491}, {"Q1": "Female", "Q2": "35-39", "count_sex_per_age": 353}, {"Q1": "Male", "Q2": "55-59", "count_sex_per_age": 279}, {"Q1": "Male", "Q2": "60-69", "count_sex_per_age": 256}, {"Q1": "Female", "Q2": "40-44", "count_sex_per_age": 171}, {"Q1": "Female", "Q2": "45-49", "count_sex_per_age": 105}, {"Q1": "Prefer not to say", "Q2": "25-29", "count_sex_per_age": 71}, {"Q1": "Female", "Q2": "50-54", "count_sex_per_age": 69}, {"Q1": "Prefer not to say", "Q2": "22-24", "count_sex_per_age": 60}, {"Q1": "Prefer not to say", "Q2": "30-34", "count_sex_per_age": 52}, {"Q1": "Male", "Q2": "70-79", "count_sex_per_age": 46}, {"Q1": "Female", "Q2": "55-59", "count_sex_per_age": 41}, {"Q1": "Prefer not to say", "Q2": "35-39", "count_sex_per_age": 40}, {"Q1": "Prefer not to say", "Q2": "18-21", "count_sex_per_age": 30}, {"Q1": "Prefer not to say", "Q2": "40-44", "count_sex_per_age": 24}, {"Q1": "Prefer not to say", "Q2": "80+", "count_sex_per_age": 22}, {"Q1": "Prefer to self-describe", "Q2": "30-34", "count_sex_per_age": 21}, {"Q1": "Prefer to self-describe", "Q2": "25-29", "count_sex_per_age": 18}, {"Q1": "Prefer not to say", "Q2": "45-49", "count_sex_per_age": 17}, {"Q1": "Prefer not to say", "Q2": "50-54", "count_sex_per_age": 14}, {"Q1": "Female", "Q2": "60-69", "count_sex_per_age": 13}, {"Q1": "Prefer to self-describe", "Q2": "22-24", "count_sex_per_age": 11}, {"Q1": "Male", "Q2": "80+", "count_sex_per_age": 9}, {"Q1": "Prefer to self-describe", "Q2": "18-21", "count_sex_per_age": 7}, {"Q1": "Prefer to self-describe", "Q2": "80+", "count_sex_per_age": 7}, {"Q1": "Prefer to self-describe", "Q2": "35-39", "count_sex_per_age": 5}, {"Q1": "Female", "Q2": "70-79", "count_sex_per_age": 4}, {"Q1": "Prefer not to say", "Q2": "55-59", "count_sex_per_age": 4}, {"Q1": "Prefer to self-describe", "Q2": "55-59", "count_sex_per_age": 4}, {"Q1": "Prefer not to say", "Q2": "60-69", "count_sex_per_age": 3}, {"Q1": "Prefer not to say", "Q2": "70-79", "count_sex_per_age": 3}, {"Q1": "Prefer to self-describe", "Q2": "40-44", "count_sex_per_age": 2}, {"Q1": "Prefer to self-describe", "Q2": "45-49", "count_sex_per_age": 2}, {"Q1": "Female", "Q2": "80+", "count_sex_per_age": 1}, {"Q1": "Prefer to self-describe", "Q2": "50-54", "count_sex_per_age": 1}, {"Q1": "Prefer to self-describe", "Q2": "60-69", "count_sex_per_age": 1}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div class="error" style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+
+  </script>
+</body>
+</html>
